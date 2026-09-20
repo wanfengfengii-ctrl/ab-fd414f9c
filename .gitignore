@@ -1,4 +1,8 @@
-.DS_Store
-.env
-node_modules/
+.venv/
 __pycache__/
+*.pyc
+node_modules/
+frontend/dist/
+backend/static/
+.pytest_cache/
+.env
