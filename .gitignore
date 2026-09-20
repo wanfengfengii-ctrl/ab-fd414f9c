@@ -2,3 +2,11 @@
 .env
 node_modules/
 __pycache__/
+*.pyc
+
+# local toolchains / build output
+.venv/
+.home/
+.npm-cache/
+frontend/dist/
+*.log

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Executable acceptance entry point.
+#
+# Builds (if needed) and starts the workbench stack, then runs the
+# end-to-end `verify` service against the real HTTP API. The host port is
+# configurable, e.g.  HOST_PORT=9090 ./verify
+#
+# Requirements: docker + docker compose v2.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+if docker compose version >/dev/null 2>&1; then
+  DC="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+  DC="docker-compose"
+else
+  echo "verify: 需要 docker compose（v2）或 docker-compose" >&2
+  exit 127
+fi
+
+echo "verify: building image and starting the app service…"
+$DC up -d --build app
+
+cleanup() {
+  if [ "${KEEP_STACK:-0}" != "1" ]; then
+    echo "verify: tearing down the stack (set KEEP_STACK=1 to keep it)"
+    $DC down >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+
+echo "verify: running acceptance suite…"
+$DC --profile verify run --rm verify

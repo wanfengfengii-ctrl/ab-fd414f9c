@@ -1,0 +1,43 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tri-mask-workbench:latest
+    container_name: tri-mask-workbench
+    ports:
+      # Host-side port is configurable: HOST_PORT=9090 docker compose up
+      - "${HOST_PORT:-8080}:8000"
+    environment:
+      # Exact-solver wall-clock budget per request, in seconds.
+      SOLVER_TIME_LIMIT: "${SOLVER_TIME_LIMIT:-20}"
+      CORS_ORIGINS: "*"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status==200 else 1)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # Acceptance service: builds the same image, waits for the app health
+  # check, then runs the end-to-end suite against the real HTTP API.
+  # Run with:
+  #   docker compose --profile verify run --rm verify
+  verify:
+    profiles: ["verify"]
+    image: tri-mask-workbench:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["sh", "/app/acceptance/run.sh"]
+    environment:
+      VERIFY_BASE_URL: "http://app:8000"
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: "no"
